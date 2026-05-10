@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>자산 순차 소진 시뮬레이터</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background-color: #f8fafc;
+            font-family: 'Pretendard', -apple-system, sans-serif;
+        }
+
+        .inline-input {
+            width: 120px;
+            text-align: center;
+            border: none;
+            border-bottom: 2px solid #2563eb;
+            color: #2563eb;
+            font-weight: 800;
+            font-size: 1.15rem;
+            background: transparent;
+            outline: none;
+            padding: 0 4px;
+        }
+
+        /* [수정] 자동계산 결과값 전용 스타일 */
+        .result-black {
+            color: #111827 !important;
+            /* 짙은 검정색 */
+            border-bottom: 2px solid #111827 !important;
+            font-weight: 800;
+            padding: 0 4px;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 10px;
+            outline: none;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #2563eb;
+            cursor: pointer;
+            border: 3px solid #fff;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        input[type=range]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #2563eb;
+            cursor: pointer;
+            border: 3px solid #fff;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+        }
+    </style>
+</head>
+
+<body class="p-4 md:p-10">
+
+    <div class="max-w-4xl mx-auto bg-white rounded-3xl shadow-xl p-6 md:p-12">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-6 mb-8 gap-4">
+            <div>
+                <h1 class="text-2xl font-black text-gray-800">⏳ 자산 소진 시뮬레이션</h1>
+                <p class="text-gray-500 text-sm mt-1">현재 자산으로 얼마나 오래 생활할 수 있는지 시뮬레이션합니다. 은퇴 후 주택 다운사이징 시점 계산기로도
+                    활용하세요<br> <span class="text-blue-600">파란색 숫자</span>를 변경하거나 좌우 슬라이더를 조절하세요</p>
+            </div>
+            <div class="text-right shrink-0">
+                <p class="text-xs text-gray-400 uppercase tracking-wider whitespace-nowrap">최종 생존 기간</p>
+                <p id="total-longevity" class="text-2xl font-black text-blue-600 whitespace-nowrap">--년 --개월</p>
+            </div>
+        </div>
+
+        <div class="relative w-full h-[350px] mb-8">
+            <canvas id="assetChart"></canvas>
+        </div>
+
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                <div class="flex items-center gap-3">
+                    <label class="w-32 text-sm text-gray-600">보유 목돈 (만원)</label>
+                    <input type="range" id="slide-savings" min="0" max="999999" step="1000" value="5000" class="flex-1">
+                </div>
+                <div class="flex items-center gap-3">
+                    <label class="w-32 text-sm text-gray-600">현재 주택 시세</label>
+                    <input type="range" id="slide-house" min="0" max="999999" step="1000" value="90000" class="flex-1">
+                </div>
+                <div class="flex items-center gap-3">
+                    <label class="w-32 text-sm text-gray-600">재테크 수익률 (%)</label>
+                    <input type="range" id="slide-return" min="0" max="30" step="0.1" value="6.0" class="flex-1">
+                </div>
+                <div class="flex items-center gap-3">
+                    <label class="w-32 text-sm text-gray-600">주택 상승률 (%)</label>
+                    <input type="range" id="slide-growth" min="0" max="30" step="0.1" value="3.0" class="flex-1">
+                </div>
+                <div class="flex items-center gap-3">
+                    <label class="w-32 text-sm text-gray-600">월 생활비 (만원)</label>
+                    <input type="range" id="slide-expense" min="0" max="10000" step="10" value="350" class="flex-1">
+                </div>
+                <div class="flex items-center gap-3">
+                    <label class="w-32 text-sm text-gray-600">주택 다운사이징</label>
+                    <input type="range" id="slide-downsize" min="0" max="1000000" step="1000" value="45000"
+                        class="flex-1">
+                </div>
+            </div>
+        </div>
+
+        <div class="text-lg md:text-xl leading-[2.5] text-gray-700 mb-10">
+            나는 <input type="number" id="savings" class="inline-input" value="5000"> 만원의 목돈과 시세 <input type="number"
+                id="house" class="inline-input" value="90000"> 만원짜리 주택을 보유 중입니다. <br>
+            나는 목돈 재테크로 매년 <input type="number" id="return" class="inline-input" value="6.0"> % 늘리고, <br>
+            주택은 매년 <input type="number" id="house-growth" class="inline-input" value="3.0"> %씩 상승할 것을 기대합니다. <br>
+            내가 매달 생활비 <input type="number" id="expense" class="inline-input" value="350"> 만원을 지출하는 경우..
+        </div>
+
+        <div class="bg-blue-50 rounded-2xl p-8 border border-blue-100 text-lg md:text-xl leading-[2.2] text-gray-800">
+            <p>1️⃣ 지금부터 <span id="res-step1" class="inline-block result-black">--년 --개월</span> 동안은 기존 목돈으로 지낼 수 있습니다.
+            </p>
+            <p>2️⃣ 그 후 집을 <input type="number" id="downsize" class="inline-input" value="45000"> 만원대(현재기준) 주택으로 옮기면,</p>
+            <p>추가로 <span id="res-step2" class="inline-block result-black">--년 --개월</span>을 더 버텨 총 <span id="res-total"
+                    class="inline-block result-black">--년 --개월</span> 까지 지내실 수 있습니다.</p>
+        </div>
+
+        <div class="mt-8 p-4 bg-blue-50 rounded-xl text-blue-800 text-sm font-medium text-center">
+            <a href="https://kr-hans.github.io/contact/" target="_blank" class="hover:underline">
+                💡 물가상승률을 고려하지 않은 단순 계산입니다. 돈 가치, 투자 시황 등의 시뮬레이션은 한작가에게 문의하세요(클릭!!)
+            </a>
+        </div>
+    </div>
+
+    <script>
+        let chart = null;
+
+        function setupSync(sliderId, inputId) {
+            const slider = document.getElementById(sliderId);
+            const input = document.getElementById(inputId);
+
+            slider.addEventListener('input', (e) => {
+                input.value = e.target.value;
+                simulate();
+            });
+            input.addEventListener('input', (e) => {
+                slider.value = e.target.value;
+                simulate();
+            });
+        }
+
+        setupSync('slide-savings', 'savings');
+        setupSync('slide-house', 'house');
+        setupSync('slide-return', 'return');
+        setupSync('slide-growth', 'house-growth');
+        setupSync('slide-expense', 'expense');
+        setupSync('slide-downsize', 'downsize');
+
+        function formatLabel(months) {
+            if (months >= 6000) return "평생";
+            const y = Math.floor(months / 12);
+            const m = months % 12;
+            return y > 0 ? `${y}년 ${m}개월` : `${m}개월`;
+        }
+
+        function simulate() {
+            let currentHouseVal = parseFloat(document.getElementById('house').value) || 0;
+            const slideDownsize = document.getElementById('slide-downsize');
+            const inputDownsize = document.getElementById('downsize');
+
+            slideDownsize.max = currentHouseVal;
+            inputDownsize.max = currentHouseVal;
+
+            let downsizeVal = parseFloat(inputDownsize.value) || 0;
+
+            if (downsizeVal > currentHouseVal) {
+                downsizeVal = currentHouseVal;
+                slideDownsize.value = currentHouseVal;
+                inputDownsize.value = currentHouseVal;
+            }
+
+            const initSavings = parseFloat(document.getElementById('savings').value) || 0;
+            const initHouse = currentHouseVal;
+            const returnRate = parseFloat(document.getElementById('return').value) || 0;
+            const growthRate = parseFloat(document.getElementById('house-growth').value) || 0;
+            const expense = parseFloat(document.getElementById('expense').value) || 0;
+            const targetHouseBase = downsizeVal;
+
+            const mReturn = returnRate / 100 / 12;
+            const mGrowth = growthRate / 100 / 12;
+
+            let currentSavings = initSavings;
+            let currentHouse = initHouse;
+            let currentTargetHouse = targetHouseBase;
+
+            let monthsStep1 = 0;
+            let monthsTotal = 0;
+            let houseSold = false;
+
+            let historySavings = [initSavings];
+            let historyHouse = [initHouse];
+            let labels = ["현재"];
+
+            // 1단계: 전체 생존 기간 계산
+            for (let m = 1; m <= 6000; m++) {
+                currentHouse *= (1 + mGrowth);
+                currentTargetHouse *= (1 + mGrowth);
+                let startingBalance = currentSavings * (1 + mReturn);
+
+                if (!houseSold) {
+                    if (startingBalance >= expense) {
+                        currentSavings = startingBalance - expense;
+                        monthsStep1 = m;
+                        monthsTotal = m;
+                    } else {
+                        currentSavings = startingBalance + (currentHouse - currentTargetHouse) - expense;
+                        houseSold = true;
+                        if (currentSavings >= 0) monthsTotal = m; else break;
+                    }
+                } else {
+                    if (startingBalance >= expense) {
+                        currentSavings = startingBalance - expense;
+                        monthsTotal = m;
+                    } else { break; }
+                }
+            }
+
+            // 2단계: 차트 데이터 수집 (step 적용)
+            const step = monthsTotal <= 60 ? 6 : (monthsTotal <= 240 ? 12 : 60);
+
+            // 초기값 재설정
+            currentSavings = initSavings;
+            currentHouse = initHouse;
+            currentTargetHouse = targetHouseBase;
+            houseSold = false;
+
+            labels = ["현재"];
+            historySavings = [initSavings];
+            historyHouse = [initHouse];
+
+            for (let m = 1; m <= monthsTotal; m++) {
+                currentHouse *= (1 + mGrowth);
+                currentTargetHouse *= (1 + mGrowth);
+                let startingBalance = currentSavings * (1 + mReturn);
+
+                if (!houseSold) {
+                    if (startingBalance >= expense) {
+                        currentSavings = startingBalance - expense;
+                    } else {
+                        currentSavings = startingBalance + (currentHouse - currentTargetHouse) - expense;
+                        houseSold = true;
+                    }
+                } else {
+                    currentSavings = Math.max(0, startingBalance - expense);
+                }
+
+                if (m % step === 0 || m === monthsTotal) {
+                    if (m % 12 === 0) labels.push(`${m / 12}년`);
+                    else labels.push(`${m}개월`);
+                    historySavings.push(currentSavings);
+                    historyHouse.push(houseSold ? currentTargetHouse : currentHouse);
+                }
+            }
+
+            document.getElementById('res-step1').innerText = formatLabel(monthsStep1);
+            document.getElementById('res-step2').innerText = formatLabel(monthsTotal - monthsStep1);
+            document.getElementById('res-total').innerText = formatLabel(monthsTotal);
+            document.getElementById('total-longevity').innerText = formatLabel(monthsTotal);
+
+            updateChart(labels, historySavings, historyHouse);
+        }
+
+        function updateChart(labels, dataSavings, dataHouse) {
+            const ctx = document.getElementById('assetChart').getContext('2d');
+            if (chart) chart.destroy();
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '가용 목돈 잔액 (만원)',
+                            data: dataSavings,
+                            borderColor: '#2563eb',
+                            backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                            fill: true,
+                            tension: 0.1,
+                            pointRadius: 0,
+                            borderWidth: 3,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: '보유 부동산 가치 (만원)',
+                            data: dataHouse,
+                            borderColor: '#16a34a',
+                            backgroundColor: 'transparent',
+                            borderDash: [5, 5],
+                            tension: 0.1,
+                            pointRadius: 0,
+                            borderWidth: 2,
+                            yAxisID: 'y'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function (value) {
+                                    if (Math.abs(value) >= 100000000) return (value / 100000000).toFixed(1).replace(/\.0$/, '') + '조';
+                                    if (Math.abs(value) >= 10000) return (value / 10000).toFixed(1).replace(/\.0$/, '') + '억';
+                                    return value.toLocaleString() + '만';
+                                }
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { maxTicksLimit: 12, autoSkip: true }
+                        }
+                    }
+                }
+            });
+        }
+        window.onload = simulate;
+    </script>
+</body>
+
+</html>
