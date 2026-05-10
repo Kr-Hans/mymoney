@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>매달 돈 모아서 목돈 만들자 (연복리의 마법)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background-color: #f8fafc;
+            font-family: 'Pretendard', -apple-system, sans-serif;
+        }
+
+        .inline-input {
+            width: 85px;
+            text-align: center;
+            border: none;
+            border-bottom: 2px solid #2563eb;
+            color: #2563eb;
+            font-weight: 800;
+            font-size: 1.15rem;
+            background: transparent;
+            outline: none;
+            padding: 0 4px;
+            transition: all 0.2s;
+        }
+
+        .inline-input:focus {
+            border-bottom-width: 3px;
+        }
+
+        .result-val {
+            display: inline-block;
+            font-weight: 900;
+            font-size: 1.15rem;
+            color: #111827;
+            border-bottom: 2px solid #111827;
+            padding: 0 4px;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 10px;
+            outline: none;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #2563eb;
+            cursor: pointer;
+            border: 3px solid #fff;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        input[type=range]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #2563eb;
+            cursor: pointer;
+            border: 3px solid #fff;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+        }
+
+        input[type="radio"] {
+            accent-color: #2563eb;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        /* 커스텀 툴팁 스타일 */
+        #chart-tooltip {
+            background: rgba(17, 24, 39, 0.95);
+            border-radius: 8px;
+            color: white;
+            opacity: 0;
+            pointer-events: none;
+            position: absolute;
+            transform: translate(-50%, 0);
+            transition: all .1s ease;
+            z-index: 100;
+            padding: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+            min-width: 200px;
+        }
+    </style>
+</head>
+
+<body class="p-4 md:p-10">
+
+    <div class="max-w-4xl mx-auto bg-white rounded-3xl shadow-xl p-6 md:p-12">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-6 mb-8 gap-4">
+            <div>
+                <h1 class="text-2xl font-black text-gray-800">📈 적립식/거치식 시뮬레이션</h1>
+                <p class="text-gray-500 text-sm mt-1">적립식 투자와 1회 거치 투자, 두 방식 모두 계산할 수 있습니다. 이자율, 거치기간 등 어떤 조건이 더 중요한지 직접
+                    확인해보세요.<br> <span class="text-blue-600">파란색 숫자</span>를 변경하거나, 좌우 슬라이드 바를 조절하세요</p>
+            </div>
+            <div class="text-right shrink-0">
+                <p class="text-xs text-gray-400 uppercase tracking-wider whitespace-nowrap">총수령액 (세후, 선택방식)</p>
+                <p class="text-2xl font-black text-gray-900 whitespace-nowrap"><span id="top-total">0</span> 만원</p>
+            </div>
+        </div>
+
+        <div class="relative w-full h-[400px] mb-8 bg-slate-50 rounded-xl p-2 border border-slate-100">
+            <canvas id="savingsChart"></canvas>
+            <div id="chart-tooltip"></div>
+
+            <div
+                class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none text-center bg-white/75 p-4 rounded-xl backdrop-blur-sm shadow-lg border border-white/50">
+                <p class="text-sm text-gray-500 font-medium">최종 세전 총액 비교</p>
+                <p class="text-lg md:text-xl font-extrabold text-blue-700 tracking-tight">
+                    연복리 vs 단리 : <span id="chart-diff-val">0</span> 만원 차이
+                </p>
+                <p class="text-sm text-blue-600 font-semibold mt-1">※ 기간이 길어야 복리 효과가 높아집니다</p>
+            </div>
+        </div>
+
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
+                <div class="flex items-center gap-3">
+                    <label class="w-36 text-sm text-gray-600 font-medium">나이 (세)</label>
+                    <input type="range" id="slide-age" min="0" max="500" step="1" value="30" class="flex-1">
+                </div>
+                <div class="flex items-center gap-3">
+                    <label class="w-36 text-sm text-gray-600 font-medium">매달 납입 (만원)</label>
+                    <input type="range" id="slide-pmt" min="0" max="9999" step="10" value="100" class="flex-1">
+                </div>
+                <div class="flex items-center gap-3">
+                    <label class="w-36 text-sm text-gray-600 font-medium">납입 기간 (개월)</label>
+                    <input type="range" id="slide-months" min="0" max="6000" step="1" value="120" class="flex-1">
+                </div>
+                <div class="flex items-center gap-3">
+                    <label class="w-36 text-sm text-gray-600 font-medium">거치 기간 (개월)</label>
+                    <input type="range" id="slide-wait" min="0" max="6000" step="1" value="0" class="flex-1">
+                </div>
+                <div class="flex items-center gap-3">
+                    <label class="w-36 text-sm text-gray-600 font-medium">수익률 (%)</label>
+                    <input type="range" id="slide-rate" min="0" max="30" step="0.1" value="5.0" class="flex-1">
+                </div>
+            </div>
+        </div>
+
+        <div class="text-lg md:text-xl leading-[2.5] text-gray-700 mb-10">
+            나의 나이는 <input type="number" id="num-age" class="inline-input" value="30">세 입니다. <br>
+            지금부터 매달 <input type="number" id="num-pmt" class="inline-input" value="100">만원을
+            <input type="number" id="num-months" class="inline-input" value="120">개월간 납입하고, <br>
+            이 돈을
+            <span
+                class="inline-flex items-center gap-2 mx-2 bg-gray-100 px-3 py-1 rounded-lg text-base border border-gray-200">
+                <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="interest-type"
+                        value="compound" checked> 연복리</label>
+                <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="interest-type"
+                        value="simple"> 단리</label>
+            </span>
+            <input type="number" id="num-rate" class="inline-input" value="5.0">%로 불립니다. <br>
+            그로부터 <input type="number" id="num-wait" class="inline-input" value="0"> 개월 더 지난 후 찾으면..
+        </div>
+
+        <div
+            class="bg-gray-50 rounded-2xl p-8 border border-gray-200 text-lg md:text-xl leading-[2.2] text-gray-800 shadow-inner">
+            <p>내 나이 <span id="res-end-age" class="result-val">0</span>세에 총 <span id="res-pre-tax"
+                    class="result-val">0</span> 만원의 목돈을 손에 쥘 수 있습니다.</p>
+            <p>그동안 늘어난 이자는 총 <span id="res-interest" class="result-val">0</span> 만원입니다.</p>
+            <p>물론, 이자소득세 <span id="res-tax" class="result-val">0</span> 만원을 차감하면 최종적으론 <span id="res-after-tax"
+                    class="result-val">0</span>만원 입니다.</p>
+            
+            <div class="mt-8 p-4 bg-blue-50 rounded-xl text-blue-800 text-sm font-medium text-center">
+                <a href="https://kr-hans.github.io/contact/" target="_blank" class="hover:underline">
+                    💡 물가상승률을 고려하지 않은 단순 계산입니다. 돈 가치, 투자 시황 등의 시뮬레이션은 한작가에게 문의하세요(클릭!!)
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let chart = null;
+
+        function setupSync(sliderId, inputId) {
+            const slider = document.getElementById(sliderId);
+            const input = document.getElementById(inputId);
+            slider.addEventListener('input', (e) => { input.value = e.target.value; simulate(); });
+            input.addEventListener('input', (e) => { slider.value = e.target.value; simulate(); });
+        }
+
+        setupSync('slide-age', 'num-age');
+        setupSync('slide-pmt', 'num-pmt');
+        setupSync('slide-months', 'num-months');
+        setupSync('slide-wait', 'num-wait');
+        setupSync('slide-rate', 'num-rate');
+
+        document.querySelectorAll('input[name="interest-type"]').forEach(radio => {
+            radio.addEventListener('change', simulate);
+        });
+
+        function simulate() {
+            const age = parseFloat(document.getElementById('num-age').value) || 0;
+            const pmt = parseFloat(document.getElementById('num-pmt').value) || 0;
+            const payMonths = parseFloat(document.getElementById('num-months').value) || 0;
+            const waitMonths = parseFloat(document.getElementById('num-wait').value) || 0;
+            const rate = parseFloat(document.getElementById('num-rate').value) || 0;
+            const selectedType = document.querySelector('input[name="interest-type"]:checked').value;
+
+            const rMonthly = rate / 100 / 12;
+            const totalMonths = payMonths + waitMonths;
+
+            const isShortTerm = totalMonths <= 120;
+            const step = isShortTerm ? 1 : 12;
+
+            let labels = [];
+            let historyPrincipal = [];
+            let historyTotalCompound = [];
+            let historyTotalSimple = [];
+
+            let curPrinc = 0;
+            let curTotalComp = 0;
+            let curTotalSimp = 0;
+            let ph1TotalComp = 0;
+            let ph1TotalSimp = 0;
+            let accSimpInt = 0;
+
+            for (let m = 0; m <= totalMonths; m++) {
+                if (m > 0) {
+                    if (m <= payMonths) {
+                        curPrinc += pmt;
+                        curTotalComp = (curTotalComp + pmt) * (1 + rMonthly);
+                        accSimpInt += curPrinc * rMonthly;
+                        curTotalSimp = curPrinc + accSimpInt;
+                        if (m === payMonths) {
+                            ph1TotalComp = curTotalComp;
+                            ph1TotalSimp = curTotalSimp;
+                        }
+                    } else {
+                        let wait_m = m - payMonths;
+                        curTotalComp = ph1TotalComp * Math.pow(1 + rMonthly, wait_m);
+                        curTotalSimp = ph1TotalSimp + (curPrinc * rMonthly * wait_m);
+                    }
+                }
+
+                if (m % step === 0 || m === totalMonths) {
+                    if (isShortTerm) {
+                        labels.push(m === 0 ? '현재' : m + '개월');
+                    } else {
+                        labels.push(m === 0 ? '현재' : (m / 12).toFixed(0) + '년');
+                    }
+                    historyPrincipal.push(curPrinc);
+                    historyTotalCompound.push(curTotalComp);
+                    historyTotalSimple.push(curTotalSimp);
+                }
+            }
+
+            const finalTotalComp = historyTotalCompound[historyTotalCompound.length - 1];
+            const finalTotalSimp = historyTotalSimple[historyTotalSimple.length - 1];
+            const preTaxDiff = Math.abs(finalTotalComp - finalTotalSimp);
+            document.getElementById('chart-diff-val').innerText = Math.round(preTaxDiff).toLocaleString();
+
+            let selectedPreTax = (selectedType === 'compound') ? finalTotalComp : finalTotalSimp;
+            const totalInterest = selectedPreTax - curPrinc;
+            const tax = Math.max(0, totalInterest * 0.154);
+            const totalAfterTax = selectedPreTax - tax;
+            const endAge = age + Math.floor(totalMonths / 12);
+
+            document.getElementById('top-total').innerText = Math.round(totalAfterTax).toLocaleString();
+            document.getElementById('res-end-age').innerText = endAge;
+            document.getElementById('res-pre-tax').innerText = Math.round(selectedPreTax).toLocaleString();
+            document.getElementById('res-interest').innerText = Math.round(totalInterest).toLocaleString();
+            document.getElementById('res-tax').innerText = Math.round(tax).toLocaleString();
+            document.getElementById('res-after-tax').innerText = Math.round(totalAfterTax).toLocaleString();
+
+            updateChart(labels, historyPrincipal, historyTotalCompound, historyTotalSimple);
+        }
+
+        // [수정 완료] 마우스 오버 시 '이자 차액'을 빨간색으로 표시하는 커스텀 툴팁 로직
+        function updateChart(labels, dataPrincipal, dataCompound, dataSimple) {
+            const ctx = document.getElementById('savingsChart').getContext('2d');
+            const tooltipEl = document.getElementById('chart-tooltip');
+
+            if (chart) chart.destroy();
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '연복리 총액',
+                            data: dataCompound,
+                            borderColor: '#2563eb',
+                            backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                            fill: true,
+                            tension: 0.1,
+                            pointRadius: 0,
+                            borderWidth: 4,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: '단리 총액',
+                            data: dataSimple,
+                            borderColor: '#94a3b8',
+                            backgroundColor: 'transparent',
+                            fill: false,
+                            tension: 0.1,
+                            pointRadius: 0,
+                            borderWidth: 2,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: '원금 누적',
+                            data: dataPrincipal,
+                            borderColor: '#cbd5e1',
+                            backgroundColor: 'transparent',
+                            borderDash: [5, 5],
+                            tension: 0.1,
+                            pointRadius: 0,
+                            borderWidth: 2,
+                            yAxisID: 'y'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { position: 'top', labels: { usePointStyle: true, padding: 20 } },
+                        tooltip: {
+                            enabled: false, // 기본 툴팁 끄기
+                            external: function (context) {
+                                const { chart, tooltip } = context;
+                                if (tooltip.opacity === 0) {
+                                    tooltipEl.style.opacity = 0;
+                                    return;
+                                }
+
+                                // 데이터 추출
+                                const dataIndex = tooltip.dataPoints[0].dataIndex;
+                                const valComp = Math.round(dataCompound[dataIndex]);
+                                const valSimp = Math.round(dataSimple[dataIndex]);
+                                const valPrinc = Math.round(dataPrincipal[dataIndex]);
+                                const diff = Math.abs(valComp - valSimp);
+
+                                // HTML 구성 (이자 차액 빨간색 반영)
+                                tooltipEl.innerHTML = `
+                                    <div class="font-bold border-b border-gray-600 pb-1 mb-2 text-gray-300 text-xs">${tooltip.title[0]}</div>
+                                    <div class="flex justify-between gap-6 text-sm mb-1">
+                                        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#2563eb]"></span> 연복리 총액:</span>
+                                        <span class="font-bold">${valComp.toLocaleString()}만</span>
+                                    </div>
+                                    <div class="flex justify-between gap-6 text-sm mb-1">
+                                        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#94a3b8]"></span> 단리 총액:</span>
+                                        <span class="font-bold">${valSimp.toLocaleString()}만</span>
+                                    </div>
+                                    <div class="flex justify-between gap-6 text-sm mb-1.5 pt-1 border-t border-gray-600 text-red-400 font-black">
+                                        <span>이자 차액:</span>
+                                        <span>${diff.toLocaleString()}만</span>
+                                    </div>
+                                    <div class="flex justify-between gap-6 text-xs text-gray-400">
+                                        <span class="flex items-center gap-1.5"><span class="w-2 h-2 border border-dashed border-gray-400"></span> 원금 총액:</span>
+                                        <span>${valPrinc.toLocaleString()}만</span>
+                                    </div>
+                                `;
+
+                                // 툴팁 위치 설정
+                                const { offsetLeft: positionX, offsetTop: positionY } = chart.canvas;
+                                tooltipEl.style.opacity = 1;
+                                tooltipEl.style.left = positionX + tooltip.caretX + 'px';
+                                tooltipEl.style.top = positionY + tooltip.caretY - 140 + 'px'; // 툴팁이 가리지 않게 위로 띄움
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#e2e8f0' },
+                            ticks: {
+                                callback: function (value) {
+                                    if (Math.abs(value) >= 100000000) return (value / 100000000).toFixed(1).replace(/\.0$/, '') + '조';
+                                    if (Math.abs(value) >= 10000) return (value / 10000).toFixed(1).replace(/\.0$/, '') + '억';
+                                    return value.toLocaleString() + '만';
+                                }
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { maxTicksLimit: 12, autoSkip: true }
+                        }
+                    }
+                }
+            });
+        }
+
+        window.onload = simulate;
+    </script>
+</body>
+
+</html>
