@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>나의 연금 생존기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background-color: #f8fafc;
+            font-family: 'Pretendard', -apple-system, sans-serif;
+        }
+
+        .inline-input {
+            width: 80px;
+            text-align: center;
+            border: none;
+            border-bottom: 2px solid #2563eb;
+            color: #2563eb;
+            font-weight: 800;
+            font-size: 1.15rem;
+            background: transparent;
+            outline: none;
+            padding: 0 4px;
+        }
+
+        /* [수정] 자동계산 결과값 전용 스타일 */
+        .result-black {
+            color: #111827 !important;
+            /* 짙은 검정색 */
+            border-bottom: 2px solid #111827 !important;
+            font-weight: 800;
+            padding: 0 4px;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 10px;
+            outline: none;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #2563eb;
+            cursor: pointer;
+            border: 3px solid #fff;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        input[type=range]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #2563eb;
+            cursor: pointer;
+            border: 3px solid #fff;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+        }
+    </style>
+</head>
+
+<body class="p-4 md:p-10">
+
+    <div class="max-w-4xl mx-auto bg-white rounded-3xl shadow-xl p-6 md:p-12">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-6 mb-8 gap-4">
+            <div>
+                <h1 class="text-2xl font-black text-gray-800">💰 내 연금 수익률 계산기</h1>
+                <p class="text-gray-500 text-sm mt-1">매달 받는 연금의 가치를 수익률 관점에서 계산합니다. 연금 제공회사가 설명하는 수익률을 검토할 때 사용하세요<br>
+                    <span class="text-blue-600">파란색 숫자</span>를 변경하거나, 좌우 슬라이드 바를 조절하세요</p>
+            </div>
+            <div class="text-right">
+                <p class="text-xs text-gray-400 uppercase tracking-wider">총 수령액</p>
+                <p class="text-2xl font-black text-blue-600"><span id="top-total-received">0</span> 만원</p>
+            </div>
+        </div>
+
+        <div class="relative w-full h-[350px] mb-8">
+            <canvas id="pensionChart"></canvas>
+        </div>
+
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                <div class="flex items-center gap-3">
+                    <label class="w-36 text-sm text-gray-600">현재 나이 (세)</label>
+                    <input type="range" id="slide-age" min="0" max="100" step="1" value="40" class="flex-1">
+                </div>
+                <div class="flex items-center gap-3">
+                    <label class="w-36 text-sm text-gray-600">수령 시작 나이 (세)</label>
+                    <input type="range" id="slide-start" min="0" max="100" step="1" value="65" class="flex-1">
+                </div>
+                <div class="flex items-center gap-3">
+                    <label class="w-36 text-sm text-gray-600">납입 기간 (개월)</label>
+                    <input type="range" id="slide-payMonths" min="0" max="600" step="12" value="120" class="flex-1">
+                </div>
+                <div class="flex items-center gap-3">
+                    <label class="w-36 text-sm text-gray-600">연 수령액 (만원)</label>
+                    <input type="range" id="slide-receiveAnnual" min="0" max="50000" step="100" value="350"
+                        class="flex-1">
+                </div>
+                <div class="flex items-center gap-3">
+                    <label class="w-36 text-sm text-gray-600">월 납입액 (만원)</label>
+                    <input type="range" id="slide-payMonthly" min="0" max="10000" step="10" value="30" class="flex-1">
+                </div>
+                <div class="flex items-center gap-3">
+                    <label class="w-36 text-sm text-gray-600">수령 기간 (년)</label>
+                    <input type="range" id="slide-receiveYears" min="0" max="50" step="1" value="40" class="flex-1">
+                </div>
+            </div>
+        </div>
+
+        <div class="text-lg md:text-xl leading-[2.5] text-gray-700 mb-10">
+            나의 나이 <input type="number" id="age" class="inline-input" value="40">세에 연금에 가입해서 <br>
+            총 <input type="number" id="payMonths" class="inline-input" value="120">개월동안 매달
+            <input type="number" id="payMonthly" class="inline-input" value="30">만원을 납입하면, <br>
+            <input type="number" id="start" class="inline-input" value="65">세 부터 매년
+            <input type="number" id="receiveAnnual" class="inline-input" value="350">만원을
+            <input type="number" id="receiveYears" class="inline-input" value="40">년간 수령한다고 합니다. <br>
+            내 연금의 실제 수익률은..
+        </div>
+
+        <div class="bg-blue-50 rounded-2xl p-8 border border-blue-100 text-lg md:text-xl leading-[2.2] text-gray-800">
+            <p>총 납입한 돈은 <span id="res-paid" class="inline-block result-black">0</span> 만원이며,</p>
+            <p>총 수령하는 돈은 <span id="res-received" class="inline-block result-black">0</span> 만원이므로,</p>
+            <p>단순 수익률로 계산하면 총 <span id="res-simple" class="inline-block result-black">0</span> % ,
+                실제 수익률(**IRR**)은 연 <span id="res-annual" class="inline-block result-black">0</span>% 입니다.</p>
+        </div>
+
+        <div class="mt-8 p-4 bg-blue-50 rounded-xl text-blue-800 text-sm font-medium text-center">
+            <a href="https://kr-hans.github.io/contact/" target="_blank" class="hover:underline">
+                💡 물가상승률을 고려하지 않은 단순 계산입니다. 돈 가치, 투자 시황 등의 시뮬레이션은 한작가에게 문의하세요(클릭!!)
+            </a>
+        </div>
+    </div>
+
+    <script>
+        let chart = null;
+
+        function setupSync(sliderId, inputId) {
+            const slider = document.getElementById(sliderId);
+            const input = document.getElementById(inputId);
+
+            slider.addEventListener('input', (e) => {
+                input.value = e.target.value;
+                simulate();
+            });
+            input.addEventListener('input', (e) => {
+                slider.value = e.target.value;
+                simulate();
+            });
+        }
+
+        setupSync('slide-age', 'age');
+        setupSync('slide-payMonths', 'payMonths');
+        setupSync('slide-payMonthly', 'payMonthly');
+        setupSync('slide-start', 'start');
+        setupSync('slide-receiveAnnual', 'receiveAnnual');
+        setupSync('slide-receiveYears', 'receiveYears');
+
+        function simulate() {
+            let age = parseFloat(document.getElementById('age').value) || 0;
+            let payMonths = parseFloat(document.getElementById('payMonths').value) || 0;
+            let payMonthly = parseFloat(document.getElementById('payMonthly').value) || 0;
+            let start = parseFloat(document.getElementById('start').value) || 0;
+            let receiveAnnual = parseFloat(document.getElementById('receiveAnnual').value) || 0;
+            let receiveYears = parseFloat(document.getElementById('receiveYears').value) || 0;
+
+            let minStartAge = age + Math.ceil(payMonths / 12);
+            const slideStart = document.getElementById('slide-start');
+            const inputStart = document.getElementById('start');
+
+            slideStart.min = minStartAge;
+            inputStart.min = minStartAge;
+
+            if (start < minStartAge) {
+                start = minStartAge;
+                slideStart.value = minStartAge;
+                inputStart.value = minStartAge;
+            }
+
+            let totalPaid = payMonths * payMonthly;
+            let totalReceived = receiveYears * receiveAnnual;
+
+            let simpleReturn = totalPaid > 0 ? ((totalReceived - totalPaid) / totalPaid) * 100 : 0;
+
+            // --- IRR (Internal Rate of Return) 계산 로직 시작 ---
+            function getIRR() {
+                if (totalPaid <= 0 || totalReceived <= 0) return 0;
+
+                // 현금 흐름 구성 (월 단위)
+                const cashFlows = [];
+                // 1. 납입기 (마이너스 흐름)
+                for (let i = 0; i < payMonths; i++) cashFlows.push(-payMonthly);
+                // 2. 거치기 (나머지 기간, 흐름 0)
+                const monthsUntilStart = Math.max(0, (start - age) * 12);
+                const waitMonths = monthsUntilStart - payMonths;
+                for (let i = 0; i < waitMonths; i++) cashFlows.push(0);
+                // 3. 수령기 (플러스 흐름)
+                const monthlyReceive = receiveAnnual / 12;
+                for (let i = 0; i < receiveYears * 12; i++) cashFlows.push(monthlyReceive);
+
+                // Newton-Raphson 방식으로 IRR 찾기
+                let r = 0.005; // 초기값 (월 0.5%)
+                for (let i = 0; i < 50; i++) {
+                    let npv = 0;
+                    let dnpv = 0;
+                    for (let j = 0; j < cashFlows.length; j++) {
+                        let discount = Math.pow(1 + r, j);
+                        npv += cashFlows[j] / discount;
+                        dnpv -= (j * cashFlows[j]) / (discount * (1 + r));
+                    }
+                    if (Math.abs(npv) < 0.01) break;
+                    r = r - npv / dnpv;
+                }
+
+                // 월 수익률을 연 수익률로 변환
+                return (Math.pow(1 + r, 12) - 1) * 100;
+            }
+
+            let annualReturn = getIRR();
+
+            document.getElementById('top-total-received').innerText = totalReceived.toLocaleString();
+            document.getElementById('res-paid').innerText = totalPaid.toLocaleString();
+            document.getElementById('res-received').innerText = totalReceived.toLocaleString();
+            document.getElementById('res-simple').innerText = simpleReturn.toFixed(1);
+            document.getElementById('res-annual').innerText = annualReturn.toFixed(2);
+
+            let labels = [];
+            let historyPaid = [];
+            let historyReceived = [];
+            let endAge = start + receiveYears;
+
+            for (let currentAge = age; currentAge <= endAge; currentAge++) {
+                labels.push(`${currentAge}세`);
+
+                let yearsPassed = currentAge - age;
+                let maxMonthsAtAge = yearsPassed * 12;
+                let actualMonthsPaid = Math.min(maxMonthsAtAge, payMonths);
+                historyPaid.push(actualMonthsPaid * payMonthly);
+
+                if (currentAge >= start) {
+                    let receiveYearsPassed = currentAge - start;
+                    let actualYearsReceived = Math.min(receiveYearsPassed, receiveYears);
+                    historyReceived.push(actualYearsReceived * receiveAnnual);
+                } else {
+                    historyReceived.push(0);
+                }
+            }
+
+            updateChart(labels, historyPaid, historyReceived);
+        }
+
+        function updateChart(labels, dataPaid, dataReceived) {
+            const ctx = document.getElementById('pensionChart').getContext('2d');
+            if (chart) chart.destroy();
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '누적 납입액 (만원)',
+                            data: dataPaid,
+                            borderColor: '#2563eb',
+                            backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                            fill: true,
+                            tension: 0.1,
+                            pointRadius: 2,
+                            borderWidth: 3
+                        },
+                        {
+                            label: '누적 수령액 (만원)',
+                            data: dataReceived,
+                            borderColor: '#16a34a',
+                            backgroundColor: 'rgba(22, 163, 74, 0.1)',
+                            fill: true,
+                            tension: 0.1,
+                            pointRadius: 2,
+                            borderWidth: 3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#e2e8f0' },
+                            ticks: {
+                                callback: function (value) {
+                                    if (Math.abs(value) >= 100000000) return (value / 100000000).toFixed(1).replace(/\.0$/, '') + '조';
+                                    if (Math.abs(value) >= 10000) return (value / 10000).toFixed(1).replace(/\.0$/, '') + '억';
+                                    return value.toLocaleString() + '만';
+                                }
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { maxTicksLimit: 15, autoSkip: true }
+                        }
+                    }
+                }
+            });
+        }
+        window.onload = simulate;
+    </script>
+</body>
+
+</html>
