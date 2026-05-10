@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>한작가 실전 재테크 | 유익한 계산기 모음</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #080c18; color: #f1f5f9; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card:hover {
+            transform: translateY(-8px);
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(241, 196, 15, 0.4);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+    </style>
+</head>
+<body class="min-h-screen py-20 px-6">
+    <div class="max-w-5xl mx-auto">
+        <header class="text-center mb-20">
+            <h1 class="text-4xl md:text-5xl font-black mb-6 tracking-tight">🧮 유익한 계산기 및 도구들</h1>
+            <p class="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed">
+                자산, 연금, 대출 등 일상에 필요한 재무 계산을 직접 시뮬레이션해보세요. 숫자가 알려주는 현실은 생각보다 흥미롭습니다. 시간되는대로 유익한 메뉴를 늘려볼게요 - 한재민 작가
+            </p>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-20">
+            <!-- Fn01: 자산 소진 시뮬레이션 -->
+            <a href="moneyout.html" target="_blank" class="glass-card rounded-[32px] p-8 flex items-center gap-6">
+                <div class="w-16 h-16 rounded-2xl bg-blue-500/10 flex items-center justify-center text-3xl shrink-0">⏳</div>
+                <div>
+                    <h3 class="text-xl font-bold mb-2">자산 소진 시뮬레이션</h3>
+                    <p class="text-gray-500 text-sm leading-snug">현재 자산으로 얼마나 오래 생활할 수 있는지 분석합니다.</p>
+                </div>
+            </a>
+
+            <!-- Fn02: 내 연금 수익률 계산기 -->
+            <a href="pension.html" target="_blank" class="glass-card rounded-[32px] p-8 flex items-center gap-6">
+                <div class="w-16 h-16 rounded-2xl bg-green-500/10 flex items-center justify-center text-3xl shrink-0">💰</div>
+                <div>
+                    <h3 class="text-xl font-bold mb-2">내 연금 수익률 계산기</h3>
+                    <p class="text-gray-500 text-sm leading-snug">매달 받는 연금의 실제 가치를 수익률로 환산합니다.</p>
+                </div>
+            </a>
+
+            <!-- Fn03: 적립식/거치식 시뮬레이션 -->
+            <a href="saving.html" target="_blank" class="glass-card rounded-[32px] p-8 flex items-center gap-6">
+                <div class="w-16 h-16 rounded-2xl bg-orange-500/10 flex items-center justify-center text-3xl shrink-0">📈</div>
+                <div>
+                    <h3 class="text-xl font-bold mb-2">적립식/거치식 시뮬레이션</h3>
+                    <p class="text-gray-500 text-sm leading-snug">복리의 마법! 최적의 저축 플랜을 직접 확인해보세요.</p>
+                </div>
+            </a>
+
+            <!-- Fn04: 대출 비교 시뮬레이션 -->
+            <a href="loan.html" target="_blank" class="glass-card rounded-[32px] p-8 flex items-center gap-6">
+                <div class="w-16 h-16 rounded-2xl bg-pink-500/10 flex items-center justify-center text-3xl shrink-0">⚖️</div>
+                <div>
+                    <h3 class="text-xl font-bold mb-2">대출 비교 시뮬레이션</h3>
+                    <p class="text-gray-500 text-sm leading-snug">이자율과 상환 방식에 따른 이자 비용 차이를 비교합니다.</p>
+                </div>
+            </a>
+        </div>
+
+        <div class="text-center">
+            <a href="https://kr-hans.github.io/contact/" class="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold hover:bg-white/10 transition-all">
+                🏠 한 작가 프로필 살펴보기
+            </a>
+        </div>
+    </div>
+</body>
+</html>
