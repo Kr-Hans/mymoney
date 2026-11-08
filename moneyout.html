@@ -151,8 +151,8 @@
             시세 <input type="number" id="house" class="inline-input" value="10000" min="0" step="1"> 만원짜리 주택을 보유 중입니다.<br>
             목돈 재테크로 매년 <input type="number" id="return" class="inline-input" value="6.0" min="0" step="0.1"> % 늘리고,<br>
             주택은 매년 <input type="number" id="house-growth" class="inline-input" value="3.0" min="0" step="0.1"> %씩 상승할 것으로 기대합니다.<br>
-            매달 생활비 <input type="number" id="expense" class="inline-input" value="100" min="0" step="1"> 만원을 지출하고,
-            물가는 매년 <input type="number" id="inflation" class="inline-input" value="2.5" min="0" step="0.1"> % 상승한다고 가정합니다.
+            매달 생활비 <input type="number" id="expense" class="inline-input" value="100" min="0" step="1"> 만원,
+            물가는 <input type="number" id="inflation" class="inline-input" value="2.5" min="0" step="0.1"> %씩 늘어난다고 가정합니다.
         </div>
 
         <div class="bg-blue-50 rounded-2xl p-6 md:p-8 border border-blue-100 text-lg md:text-xl leading-[2.2] text-gray-800">
@@ -163,7 +163,7 @@
 
         <div class="mt-8 p-4 bg-blue-50 rounded-xl text-blue-800 text-sm font-medium text-center">
             <a href="https://kr-hans.github.io/contact/" target="_blank" rel="noopener noreferrer" class="hover:underline">
-                💡 단순 참고용 시뮬레이션입니다. 세금·거래비용·투자 변동성 등은 반영하지 않습니다. 자세한 분석은 한작가에게 문의하세요(클릭!!)
+                💡 단순 참고용 시뮬레이션입니다. 다양한 경제 변수 등은 반영하지 않았습니다. 자세한 의견은 한작가에게 문의하세요(클릭!!)
             </a>
         </div>
     </div>
@@ -356,7 +356,6 @@
 
             const monthlyReturn = effectiveMonthlyRate(returnRate);
             const monthlyHouseGrowth = effectiveMonthlyRate(growthRate);
-            const monthlyInflation = effectiveMonthlyRate(inflationRate);
 
             let savings = initialSavings;
             let house = initialHouse;
@@ -377,7 +376,8 @@
                 targetHouse *= (1 + monthlyHouseGrowth);
 
                 // 월 물가상승률을 매월 복리 적용한다. 12개월 후 생활비는 연 물가상승률만큼 증가한다.
-                const monthlyExpense = baseExpense * Math.pow(1 + monthlyInflation, month);
+		const yearsElapsed = Math.floor((month - 1) / 12);
+		const monthlyExpense = baseExpense * Math.pow(1 + (inflationRate / 100), yearsElapsed);
                 const balanceBeforeExpense = savings * (1 + monthlyReturn);
 
                 if (!houseSold && balanceBeforeExpense >= monthlyExpense) {
