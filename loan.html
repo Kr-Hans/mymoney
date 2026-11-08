@@ -11,11 +11,11 @@
         
         /* 사용자 입력 폼 (파란색) */
         .inline-input {
-            width: 90px; text-align: center; border: none; border-bottom: 2px solid #2563eb;
+            width: 100px; text-align: center; border: none; border-bottom: 2px solid #2563eb;
             color: #2563eb; font-weight: 800; font-size: 1.15rem; background: transparent;
             outline: none; padding: 0 4px; transition: all 0.2s;
         }
-        .inline-input:focus { border-bottom-width: 3px; }
+        .inline-input:focus { border-bottom-width: 3px; background-color: #eff6ff; }
 
         /* 시스템 계산 결과 (검정색) */
         .result-val {
@@ -64,7 +64,10 @@
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-6 mb-8 gap-4">
             <div>
                 <h1 class="text-2xl font-black text-gray-800">⚖️ 대출 비교 시뮬레이션</h1>
-                <p class="text-gray-500 text-sm mt-1">같은 대출이어도 이자에 따라 크게 또는 작게 달라집니다. 상환 방식과 금리에 따라 이자로 나가는 돈의 차이를 비교하세요<br> <span class="text-blue-600">파란색 숫자</span>를 변경하거나, 좌우 슬라이드 바를 조절하세요</p>
+                <p class="text-gray-500 text-sm mt-1">
+                    같은 대출이어도 이자에 따라 크게 또는 작게 달라집니다. 상환 방식과 금리에 따라 이자로 나가는 돈의 차이를 비교하세요<br>
+                    <span class="text-blue-600 font-semibold">파란색 숫자</span>를 직접 입력하거나, 좌우 슬라이드 바를 조절하세요.
+                </p>
             </div>
             <div class="text-right">
                 <p class="text-xs text-gray-400 uppercase tracking-wider">총이자액 (첫번째 이율 기준)</p>
@@ -85,15 +88,17 @@
             </div>
         </div>
 
+        <!-- 슬라이더 영역 -->
         <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 mb-8">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
                 <div class="flex items-center gap-3">
                     <label class="w-36 text-sm text-gray-600 font-medium">나이 (세)</label>
-                    <input type="range" id="slide-age" min="0" max="100" step="1" value="35" class="flex-1">
+                    <input type="range" id="slide-age" min="20" max="100" step="1" value="35" class="flex-1">
                 </div>
+                <!-- 10억 원(100,000만 원) 상한 설정 -->
                 <div class="flex items-center gap-3">
                     <label class="w-36 text-sm text-gray-600 font-medium">대출 금액 (만원)</label>
-                    <input type="range" id="slide-loan" min="0" max="100000" step="1000" value="10000" class="flex-1">
+                    <input type="range" id="slide-loan" min="100" max="100000" step="100" value="10000" class="flex-1">
                 </div>
                 <div class="flex items-center gap-3">
                     <label class="w-36 text-sm text-gray-600 font-medium">대출 기간 (년)</label>
@@ -105,15 +110,16 @@
                 </div>
                 <div class="flex items-center gap-3">
                     <label class="w-36 text-sm text-gray-600 font-medium">이자율 1 (%)</label>
-                    <input type="range" id="slide-rate1" min="0" max="20" step="0.1" value="4.0" class="flex-1">
+                    <input type="range" id="slide-rate1" min="0.1" max="20" step="0.1" value="4.0" class="flex-1">
                 </div>
                 <div class="flex items-center gap-3">
                     <label class="w-36 text-sm text-gray-600 font-medium">이자율 2 (%)</label>
-                    <input type="range" id="slide-rate2" min="0" max="20" step="0.1" value="5.0" class="flex-1">
+                    <input type="range" id="slide-rate2" min="0.1" max="20" step="0.1" value="5.0" class="flex-1">
                 </div>
             </div>
         </div>
 
+        <!-- 수기 입력 및 조건 선택 영역 -->
         <div class="text-lg md:text-xl leading-[2.8] text-gray-700 mb-10">
             내 나이 <input type="number" id="num-age" class="inline-input" value="35"> 세에, 
             대출금 <input type="number" id="num-loan" class="inline-input" value="10000"> 만원을 <br>
@@ -125,33 +131,64 @@
                 <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="repay-type" value="bullet"> 만기일시</label>
             </span>
             방식으로 빌릴 때 <br>
-            이자 <input type="number" id="num-rate1" class="inline-input" value="4.0">% 와 
-            이자 <input type="number" id="num-rate2" class="inline-input" value="5.0">% 의 차이는..
+            이자 <input type="number" id="num-rate1" class="inline-input" step="0.1" value="4.0">% 와 
+            이자 <input type="number" id="num-rate2" class="inline-input" step="0.1" value="5.0">% 의 차이는..
         </div>
 
+        <!-- 결과 출력 영역 -->
         <div class="bg-gray-50 rounded-2xl p-8 border border-gray-200 text-lg md:text-xl leading-[2.4] text-gray-800 shadow-inner">
             <p>총 <span id="res-diff" class="result-val text-red-600 border-red-600">0</span> 만원 차이가 납니다.</p>
             <p><span id="val-rate1" class="font-bold">0.0</span>%일 때, 통장에서 빠져나갈 이자는 총 <span id="res-total1" class="result-val">0</span>만원이고,</p>
             <p><span id="val-rate2" class="font-bold">0.0</span>%일 때, 통장에서 빠져나갈 이자는 총 <span id="res-total2" class="result-val">0</span>만원 입니다.</p>
             <p>첫 번째 이자율로 빌리면, 내 나이 <span id="res-end-age" class="result-val">0</span> 세에 빚을 청산할 겁니다.</p>
-        <div class="mt-8 p-4 bg-blue-50 rounded-xl text-blue-800 text-sm font-medium text-center">
-            <a href="https://kr-hans.github.io/contact/" target="_blank" class="hover:underline">
-                💡 물가상승률을 고려하지 않은 단순 계산입니다. 돈 가치, 투자 시황 등의 시뮬레이션은 한작가에게 문의하세요(클릭!!)
-            </a>
-        </div>
+            
+            <div class="mt-8 p-4 bg-blue-50 rounded-xl text-blue-800 text-sm font-medium text-center">
+                <a href="https://kr-hans.github.io/contact/" target="_blank" class="hover:underline">
+                    💡 물가상승률을 고려하지 않은 단순 계산입니다. 돈 가치, 투자 시황 등의 시뮬레이션은 한작가에게 문의하세요(클릭!!)
+                </a>
+            </div>
         </div>
     </div>
 
     <script>
         let chart = null;
 
+        // 동기화 및 버그 방지 제어 함수
         function setupSync(sliderId, inputId) {
             const slider = document.getElementById(sliderId);
             const input = document.getElementById(inputId);
-            slider.addEventListener('input', (e) => { input.value = e.target.value; simulate(); });
-            input.addEventListener('input', (e) => { slider.value = e.target.value; simulate(); });
+
+            // 1. 슬라이더 조작 시 -> 입력창에 반영 (실시간)
+            slider.addEventListener('input', (e) => {
+                input.value = e.target.value;
+                simulate();
+            });
+
+            // 2. 수기 입력 시 -> Focus out 또는 Enter(change) 시점에 검증 및 슬라이더 반영 (타이핑 튐 방지)
+            input.addEventListener('change', (e) => {
+                let min = parseFloat(slider.min);
+                let max = parseFloat(slider.max);
+                let val = parseFloat(e.target.value);
+
+                if (isNaN(val)) val = min;
+                if (val < min) val = min;
+                if (val > max) val = max;
+
+                // 정수/소수점 포맷팅 정리
+                const step = slider.step;
+                if (step === "1" || step === "100") {
+                    val = Math.round(val);
+                } else {
+                    val = Math.round(val * 10) / 10;
+                }
+
+                input.value = val;
+                slider.value = val;
+                simulate();
+            });
         }
 
+        // 각 필드별 슬라이더-수기입력 동기화 설정
         setupSync('slide-age', 'num-age');
         setupSync('slide-loan', 'num-loan');
         setupSync('slide-term', 'num-term');
@@ -163,6 +200,7 @@
             radio.addEventListener('change', simulate);
         });
 
+        // 이자 계산 로직 (금융 공식 적용)
         function calculateInterest(loan, termY, graceY, rateAn, type) {
             const termM = termY * 12;
             const graceM = graceY * 12;
@@ -200,6 +238,7 @@
             return { totalInt, history: cumulativeInterest };
         }
 
+        // 계산 및 화면 시뮬레이션 갱신
         function simulate() {
             const age = parseFloat(document.getElementById('num-age').value) || 0;
             const loan = parseFloat(document.getElementById('num-loan').value) || 0;
@@ -209,11 +248,10 @@
             const rate2 = parseFloat(document.getElementById('num-rate2').value) || 0;
             const type = document.querySelector('input[name="repay-type"]:checked').value;
 
-            // 거치기간 제약
+            // 거치기간 상한 보정 (거치기간 > 대출기간 방지)
             const slideGrace = document.getElementById('slide-grace');
             const numGrace = document.getElementById('num-grace');
             slideGrace.max = termY;
-            numGrace.max = termY;
             if (graceY > termY) {
                 graceY = termY;
                 slideGrace.value = termY;
@@ -246,6 +284,7 @@
             updateChart(labels, data1, data2);
         }
 
+        // Chart.js 그래프 업데이트
         function updateChart(labels, data1, data2) {
             const ctx = document.getElementById('loanChart').getContext('2d');
             const tooltipEl = document.getElementById('chart-tooltip');
@@ -299,7 +338,6 @@
                             beginAtZero: true, 
                             ticks: { 
                                 callback: function(value) {
-                                    if (Math.abs(value) >= 100000000) return (value / 100000000).toFixed(1).replace(/\.0$/, '') + '조';
                                     if (Math.abs(value) >= 10000) return (value / 10000).toFixed(1).replace(/\.0$/, '') + '억';
                                     return value.toLocaleString() + '만';
                                 }
@@ -310,6 +348,7 @@
                 }
             });
         }
+
         window.onload = simulate;
     </script>
 </body>
