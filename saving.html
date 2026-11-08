@@ -14,7 +14,7 @@
         }
 
         .inline-input {
-            width: 85px;
+            width: 95px;
             text-align: center;
             border: none;
             border-bottom: 2px solid #2563eb;
@@ -82,7 +82,6 @@
             cursor: pointer;
         }
 
-        /* 커스텀 툴팁 스타일 */
         #chart-tooltip {
             background: rgba(17, 24, 39, 0.95);
             border-radius: 8px;
@@ -106,8 +105,7 @@
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-6 mb-8 gap-4">
             <div>
                 <h1 class="text-2xl font-black text-gray-800">📈 적립식/거치식 시뮬레이션</h1>
-                <p class="text-gray-500 text-sm mt-1">적립식 투자와 1회 거치 투자, 두 방식 모두 계산할 수 있습니다. 이자율, 거치기간 등 어떤 조건이 더 중요한지 직접
-                    확인해보세요.<br> <span class="text-blue-600">파란색 숫자</span>를 변경하거나, 좌우 슬라이드 바를 조절하세요</p>
+                <p class="text-gray-500 text-sm mt-1">적립식 투자와 1회 거치 투자, 두 방식 모두 계산할 수 있습니다. 이자율, 거치기간 등 어떤 조건이 더 중요한지 직접 확인해보세요.<br> <span class="text-blue-600">파란색 숫자</span>를 직접 입력하거나, 좌우 슬라이드 바를 조절하세요</p>
             </div>
             <div class="text-right shrink-0">
                 <p class="text-xs text-gray-400 uppercase tracking-wider whitespace-nowrap">총수령액 (세후, 선택방식)</p>
@@ -119,8 +117,7 @@
             <canvas id="savingsChart"></canvas>
             <div id="chart-tooltip"></div>
 
-            <div
-                class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none text-center bg-white/75 p-4 rounded-xl backdrop-blur-sm shadow-lg border border-white/50">
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none text-center bg-white/75 p-4 rounded-xl backdrop-blur-sm shadow-lg border border-white/50">
                 <p class="text-sm text-gray-500 font-medium">최종 세전 총액 비교</p>
                 <p class="text-lg md:text-xl font-extrabold text-blue-700 tracking-tight">
                     연복리 vs 단리 : <span id="chart-diff-val">0</span> 만원 차이
@@ -133,19 +130,19 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
                 <div class="flex items-center gap-3">
                     <label class="w-36 text-sm text-gray-600 font-medium">나이 (세)</label>
-                    <input type="range" id="slide-age" min="0" max="500" step="1" value="30" class="flex-1">
+                    <input type="range" id="slide-age" min="0" max="100" step="1" value="30" class="flex-1">
                 </div>
                 <div class="flex items-center gap-3">
                     <label class="w-36 text-sm text-gray-600 font-medium">매달 납입 (만원)</label>
-                    <input type="range" id="slide-pmt" min="0" max="9999" step="10" value="100" class="flex-1">
+                    <input type="range" id="slide-pmt" min="0" max="1000" step="10" value="100" class="flex-1">
                 </div>
                 <div class="flex items-center gap-3">
                     <label class="w-36 text-sm text-gray-600 font-medium">납입 기간 (개월)</label>
-                    <input type="range" id="slide-months" min="0" max="6000" step="1" value="120" class="flex-1">
+                    <input type="range" id="slide-months" min="0" max="600" step="1" value="120" class="flex-1">
                 </div>
                 <div class="flex items-center gap-3">
                     <label class="w-36 text-sm text-gray-600 font-medium">거치 기간 (개월)</label>
-                    <input type="range" id="slide-wait" min="0" max="6000" step="1" value="0" class="flex-1">
+                    <input type="range" id="slide-wait" min="0" max="600" step="1" value="0" class="flex-1">
                 </div>
                 <div class="flex items-center gap-3">
                     <label class="w-36 text-sm text-gray-600 font-medium">수익률 (%)</label>
@@ -155,28 +152,22 @@
         </div>
 
         <div class="text-lg md:text-xl leading-[2.5] text-gray-700 mb-10">
-            나의 나이는 <input type="number" id="num-age" class="inline-input" value="30">세 입니다. <br>
-            지금부터 매달 <input type="number" id="num-pmt" class="inline-input" value="100">만원을
-            <input type="number" id="num-months" class="inline-input" value="120">개월간 납입하고, <br>
+            나의 나이는 <input type="number" id="num-age" class="inline-input" value="30" min="0" max="100">세 입니다. <br>
+            지금부터 매달 <input type="number" id="num-pmt" class="inline-input" value="100" min="0">만원을
+            <input type="number" id="num-months" class="inline-input" value="120" min="0">개월간 납입하고, <br>
             이 돈을
-            <span
-                class="inline-flex items-center gap-2 mx-2 bg-gray-100 px-3 py-1 rounded-lg text-base border border-gray-200">
-                <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="interest-type"
-                        value="compound" checked> 연복리</label>
-                <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="interest-type"
-                        value="simple"> 단리</label>
+            <span class="inline-flex items-center gap-2 mx-2 bg-gray-100 px-3 py-1 rounded-lg text-base border border-gray-200">
+                <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="interest-type" value="compound" checked> 연복리</label>
+                <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="interest-type" value="simple"> 단리</label>
             </span>
-            <input type="number" id="num-rate" class="inline-input" value="5.0">%로 불립니다. <br>
-            그로부터 <input type="number" id="num-wait" class="inline-input" value="0"> 개월 더 지난 후 찾으면..
+            <input type="number" id="num-rate" class="inline-input" value="5.0" step="0.1" min="0" max="30">%로 불립니다. <br>
+            그로부터 <input type="number" id="num-wait" class="inline-input" value="0" min="0"> 개월 더 지난 후 찾으면..
         </div>
 
-        <div
-            class="bg-gray-50 rounded-2xl p-8 border border-gray-200 text-lg md:text-xl leading-[2.2] text-gray-800 shadow-inner">
-            <p>내 나이 <span id="res-end-age" class="result-val">0</span>세에 총 <span id="res-pre-tax"
-                    class="result-val">0</span> 만원의 목돈을 손에 쥘 수 있습니다.</p>
+        <div class="bg-gray-50 rounded-2xl p-8 border border-gray-200 text-lg md:text-xl leading-[2.2] text-gray-800 shadow-inner">
+            <p>내 나이 <span id="res-end-age" class="result-val">0</span>세에 총 <span id="res-pre-tax" class="result-val">0</span> 만원의 목돈을 손에 쥘 수 있습니다.</p>
             <p>그동안 늘어난 이자는 총 <span id="res-interest" class="result-val">0</span> 만원입니다.</p>
-            <p>물론, 이자소득세 <span id="res-tax" class="result-val">0</span> 만원을 차감하면 최종적으론 <span id="res-after-tax"
-                    class="result-val">0</span>만원 입니다.</p>
+            <p>물론, 이자소득세 <span id="res-tax" class="result-val">0</span> 만원을 차감하면 최종적으론 <span id="res-after-tax" class="result-val">0</span>만원 입니다.</p>
             
             <div class="mt-8 p-4 bg-blue-50 rounded-xl text-blue-800 text-sm font-medium text-center">
                 <a href="https://kr-hans.github.io/contact/" target="_blank" class="hover:underline">
@@ -192,8 +183,30 @@
         function setupSync(sliderId, inputId) {
             const slider = document.getElementById(sliderId);
             const input = document.getElementById(inputId);
-            slider.addEventListener('input', (e) => { input.value = e.target.value; simulate(); });
-            input.addEventListener('input', (e) => { slider.value = e.target.value; simulate(); });
+
+            // 슬라이드 조작 시 -> 숫자 입력창에 반영
+            slider.addEventListener('input', (e) => {
+                input.value = e.target.value;
+                simulate();
+            });
+
+            // 숫자 입력창 직접 입력 시 -> 슬라이드에 반영 (단, 빈값이나 타이핑 도중 에러 방지)
+            input.addEventListener('input', (e) => {
+                let val = e.target.value;
+                if (val === '') return; // 빈 값일 때는 대기
+                let numVal = parseFloat(val);
+                if (!isNaN(numVal)) {
+                    // 슬라이드 범위를 벗어날 경우 슬라이드는 max로 고정하되 계산은 정상 수행
+                    if (numVal > parseFloat(slider.max)) {
+                        slider.value = slider.max;
+                    } else if (numVal < parseFloat(slider.min)) {
+                        slider.value = slider.min;
+                    } else {
+                        slider.value = numVal;
+                    }
+                }
+                simulate();
+            });
         }
 
         setupSync('slide-age', 'num-age');
@@ -228,25 +241,27 @@
             let curPrinc = 0;
             let curTotalComp = 0;
             let curTotalSimp = 0;
-            let ph1TotalComp = 0;
-            let ph1TotalSimp = 0;
             let accSimpInt = 0;
 
+            // 월별 시뮬레이션 정밀 계산 루프
             for (let m = 0; m <= totalMonths; m++) {
                 if (m > 0) {
                     if (m <= payMonths) {
+                        // 납입 기간 동안
                         curPrinc += pmt;
                         curTotalComp = (curTotalComp + pmt) * (1 + rMonthly);
-                        accSimpInt += curPrinc * rMonthly;
+                        // 단리: 매월 쌓이는 원금과 기존 누적 단리 이자에 대한 월 이자 계산
+                        accSimpInt += (curPrinc * rMonthly); 
                         curTotalSimp = curPrinc + accSimpInt;
-                        if (m === payMonths) {
-                            ph1TotalComp = curTotalComp;
-                            ph1TotalSimp = curTotalSimp;
-                        }
                     } else {
-                        let wait_m = m - payMonths;
-                        curTotalComp = ph1TotalComp * Math.pow(1 + rMonthly, wait_m);
-                        curTotalSimp = ph1TotalSimp + (curPrinc * rMonthly * wait_m);
+                        // 거치 기간 동안 (추가 납입 없음)
+                        curTotalComp = curTotalComp * (1 + rMonthly);
+                        // 단리 거치 기간: 원금은 고정되어 있으나, 단리 이자는 매월 일정하게 추가됨 (초기 원금 기준 월 이자 혹은 누적 원금 기준)
+                        // 통상 단리적금의 거치 시점 이자는 납입완료 시점의 원금 기준이므로 고정 이자가 매월 추가됨
+                        let monthlySimpleInterest = (pmt * payMonths) * rMonthly; 
+                        // 정확한 단리 매월 증가분 적용
+                        accSimpInt += (pmt * payMonths) * rMonthly; 
+                        curTotalSimp = curPrinc + accSimpInt;
                     }
                 }
 
@@ -283,7 +298,6 @@
             updateChart(labels, historyPrincipal, historyTotalCompound, historyTotalSimple);
         }
 
-        // [수정 완료] 마우스 오버 시 '이자 차액'을 빨간색으로 표시하는 커스텀 툴팁 로직
         function updateChart(labels, dataPrincipal, dataCompound, dataSimple) {
             const ctx = document.getElementById('savingsChart').getContext('2d');
             const tooltipEl = document.getElementById('chart-tooltip');
@@ -337,7 +351,7 @@
                     plugins: {
                         legend: { position: 'top', labels: { usePointStyle: true, padding: 20 } },
                         tooltip: {
-                            enabled: false, // 기본 툴팁 끄기
+                            enabled: false,
                             external: function (context) {
                                 const { chart, tooltip } = context;
                                 if (tooltip.opacity === 0) {
@@ -345,14 +359,12 @@
                                     return;
                                 }
 
-                                // 데이터 추출
                                 const dataIndex = tooltip.dataPoints[0].dataIndex;
                                 const valComp = Math.round(dataCompound[dataIndex]);
                                 const valSimp = Math.round(dataSimple[dataIndex]);
                                 const valPrinc = Math.round(dataPrincipal[dataIndex]);
                                 const diff = Math.abs(valComp - valSimp);
 
-                                // HTML 구성 (이자 차액 빨간색 반영)
                                 tooltipEl.innerHTML = `
                                     <div class="font-bold border-b border-gray-600 pb-1 mb-2 text-gray-300 text-xs">${tooltip.title[0]}</div>
                                     <div class="flex justify-between gap-6 text-sm mb-1">
@@ -373,11 +385,10 @@
                                     </div>
                                 `;
 
-                                // 툴팁 위치 설정
                                 const { offsetLeft: positionX, offsetTop: positionY } = chart.canvas;
                                 tooltipEl.style.opacity = 1;
                                 tooltipEl.style.left = positionX + tooltip.caretX + 'px';
-                                tooltipEl.style.top = positionY + tooltip.caretY - 140 + 'px'; // 툴팁이 가리지 않게 위로 띄움
+                                tooltipEl.style.top = positionY + tooltip.caretY - 140 + 'px';
                             }
                         }
                     },
