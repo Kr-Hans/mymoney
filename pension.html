@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>나의 연금 생존기</title>
+    <title>나의 연금 생존기 - 명목 vs 실질 수익률 분석</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -26,10 +26,8 @@
             padding: 0 4px;
         }
 
-        /* [수정] 자동계산 결과값 전용 스타일 */
         .result-black {
             color: #111827 !important;
-            /* 짙은 검정색 */
             border-bottom: 2px solid #111827 !important;
             font-weight: 800;
             padding: 0 4px;
@@ -77,13 +75,28 @@
     <div class="max-w-4xl mx-auto bg-white rounded-3xl shadow-xl p-6 md:p-12">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-6 mb-8 gap-4">
             <div>
-                <h1 class="text-2xl font-black text-gray-800">💰 내 연금 수익률 계산기</h1>
-                <p class="text-gray-500 text-sm mt-1">매달 받는 연금의 가치를 수익률 관점에서 계산합니다. 연금 제공회사가 설명하는 수익률을 검토할 때 사용하세요<br>
-                    <span class="text-blue-600">파란색 숫자</span>를 변경하거나, 좌우 슬라이드 바를 조절하세요</p>
+                <h1 class="text-2xl font-black text-gray-800">💰 내 연금 수익률 정밀 분석기 (명목 vs 실질)</h1>
+                <p class="text-gray-500 text-sm mt-1">화폐 액면 기준 명목 수익률과 물가상승률을 감안한 실질 구매력 수익률을 동시에 비교합니다.<br>
+                    <span class="text-blue-600">파란색 숫자</span>를 변경하거나, 슬라이드 바를 조절하세요.</p>
             </div>
             <div class="text-right">
-                <p class="text-xs text-gray-400 uppercase tracking-wider">총 수령액</p>
+                <p class="text-xs text-gray-400 uppercase tracking-wider">명목 총 수령액</p>
                 <p class="text-2xl font-black text-blue-600"><span id="top-total-received">0</span> 만원</p>
+            </div>
+        </div>
+
+        <!-- 차트 관점 선택 토글 버튼 -->
+        <div class="flex justify-between items-center mb-3">
+            <span class="text-sm font-bold text-gray-700">📈 시뮬레이션 그래프</span>
+            <div class="inline-flex rounded-lg bg-slate-100 p-1 border border-slate-200">
+                <button id="btn-toggle-nominal" onclick="setChartMode('nominal')"
+                    class="px-3 py-1.5 text-xs font-bold rounded-md bg-white text-blue-600 shadow-sm transition-all">
+                    명목 기준 (액면가)
+                </button>
+                <button id="btn-toggle-real" onclick="setChartMode('real')"
+                    class="px-3 py-1.5 text-xs font-bold rounded-md text-gray-500 hover:text-gray-800 transition-all">
+                    실질 기준 (구매력 PV)
+                </button>
             </div>
         </div>
 
@@ -107,8 +120,7 @@
                 </div>
                 <div class="flex items-center gap-3">
                     <label class="w-36 text-sm text-gray-600">연 수령액 (만원)</label>
-                    <input type="range" id="slide-receiveAnnual" min="0" max="50000" step="100" value="350"
-                        class="flex-1">
+                    <input type="range" id="slide-receiveAnnual" min="0" max="50000" step="100" value="350" class="flex-1">
                 </div>
                 <div class="flex items-center gap-3">
                     <label class="w-36 text-sm text-gray-600">월 납입액 (만원)</label>
@@ -117,6 +129,10 @@
                 <div class="flex items-center gap-3">
                     <label class="w-36 text-sm text-gray-600">수령 기간 (년)</label>
                     <input type="range" id="slide-receiveYears" min="0" max="50" step="1" value="40" class="flex-1">
+                </div>
+                <div class="flex items-center gap-3 md:col-span-2">
+                    <label class="w-36 text-sm text-gray-600">물가 상승률 (%)</label>
+                    <input type="range" id="slide-inflation" min="0.0" max="6.0" step="0.1" value="2.5" class="flex-1">
                 </div>
             </div>
         </div>
@@ -128,25 +144,57 @@
             <input type="number" id="start" class="inline-input" value="65">세 부터 매년
             <input type="number" id="receiveAnnual" class="inline-input" value="350">만원을
             <input type="number" id="receiveYears" class="inline-input" value="40">년간 수령한다고 합니다. <br>
-            내 연금의 실제 수익률은..
+            (연간 물가상승률 <input type="number" id="inflation" class="inline-input" style="width:70px;" value="2.5" step="0.1">% 가정)
         </div>
 
-        <div class="bg-blue-50 rounded-2xl p-8 border border-blue-100 text-lg md:text-xl leading-[2.2] text-gray-800">
-            <p>총 납입한 돈은 <span id="res-paid" class="inline-block result-black">0</span> 만원이며,</p>
-            <p>총 수령하는 돈은 <span id="res-received" class="inline-block result-black">0</span> 만원이므로,</p>
-            <p>단순 수익률로 계산하면 총 <span id="res-simple" class="inline-block result-black">0</span> % ,
-                실제 수익률(**IRR**)은 연 <span id="res-annual" class="inline-block result-black">0</span>% 입니다.</p>
+        <!-- 결과 출력 영역 -->
+        <div class="space-y-6">
+            <!-- 1. 명목 기준 결과 -->
+            <div class="bg-blue-50 rounded-2xl p-6 border border-blue-100 text-lg md:text-xl leading-[2.2] text-gray-800 space-y-2">
+                <h2 class="font-bold text-blue-900 text-base mb-1">📊 1. 명목 기준 (화폐 액면 비교)</h2>
+                <p>총 납입한 돈은 <span id="res-paid-nom" class="inline-block result-black">0</span> 만원이며,</p>
+                <p>총 수령하는 돈은 <span id="res-received-nom" class="inline-block result-black">0</span> 만원이므로,</p>
+                <p>단순 수익률은 총 <span id="res-simple-nom" class="inline-block result-black">0</span>% , 
+                   실제 수익률(<b>IRR</b>)은 연 <span id="res-annual-nom" class="inline-block result-black">0</span>% 입니다.</p>
+            </div>
+
+            <!-- 2. 실질 기준 (물가 반영) 결과 -->
+            <div class="bg-emerald-50 rounded-2xl p-6 border border-emerald-100 text-lg md:text-xl leading-[2.2] text-gray-800 space-y-2">
+                <h2 class="font-bold text-emerald-900 text-base mb-1">🌱 2. 실질 기준 (물가 상승 및 구매력 반영)</h2>
+                <p>물가 반영한 실제 내가 낸 원금(PV)은 <span id="res-paid-real" class="inline-block result-black">0</span> 만원이며,</p>
+                <p>물가 반영한 실질 총수령액(PV)은 <span id="res-received-real" class="inline-block result-black">0</span> 만원이므로,</p>
+                <p>실질 총 수익률은 <span id="res-simple-real" class="inline-block result-black">0</span>%, 
+                   연환산하면 <span id="res-annual-real" class="inline-block result-black">0</span>% 입니다.</p>
+            </div>
         </div>
 
-        <div class="mt-8 p-4 bg-blue-50 rounded-xl text-blue-800 text-sm font-medium text-center">
+        <div class="mt-8 p-4 bg-slate-100 rounded-xl text-slate-700 text-sm font-medium text-center">
             <a href="https://kr-hans.github.io/contact/" target="_blank" class="hover:underline">
-                💡 물가상승률을 고려하지 않은 단순 계산입니다. 돈 가치, 투자 시황 등의 시뮬레이션은 한작가에게 문의하세요(클릭!!)
+                💡 단순 시뮬레이션입니다. 정확한 자산관리 및 포트폴리오는 한작가에게 문의하세요 (클릭!!)
             </a>
         </div>
     </div>
 
     <script>
         let chart = null;
+        let currentChartMode = 'nominal'; // 'nominal' | 'real'
+        let chartDataCache = { labels: [], nomPaid: [], nomRec: [], realPaid: [], realRec: [] };
+
+        function setChartMode(mode) {
+            currentChartMode = mode;
+            const btnNom = document.getElementById('btn-toggle-nominal');
+            const btnReal = document.getElementById('btn-toggle-real');
+
+            if (mode === 'nominal') {
+                btnNom.className = "px-3 py-1.5 text-xs font-bold rounded-md bg-white text-blue-600 shadow-sm transition-all";
+                btnReal.className = "px-3 py-1.5 text-xs font-bold rounded-md text-gray-500 hover:text-gray-800 transition-all";
+            } else {
+                btnReal.className = "px-3 py-1.5 text-xs font-bold rounded-md bg-white text-emerald-600 shadow-sm transition-all";
+                btnNom.className = "px-3 py-1.5 text-xs font-bold rounded-md text-gray-500 hover:text-gray-800 transition-all";
+            }
+
+            renderChart();
+        }
 
         function setupSync(sliderId, inputId) {
             const slider = document.getElementById(sliderId);
@@ -156,8 +204,13 @@
                 input.value = e.target.value;
                 simulate();
             });
-            input.addEventListener('input', (e) => {
-                slider.value = e.target.value;
+
+            input.addEventListener('change', (e) => {
+                let val = parseFloat(e.target.value) || 0;
+                if (val > parseFloat(slider.max)) {
+                    slider.max = val;
+                }
+                slider.value = val;
                 simulate();
             });
         }
@@ -168,6 +221,7 @@
         setupSync('slide-start', 'start');
         setupSync('slide-receiveAnnual', 'receiveAnnual');
         setupSync('slide-receiveYears', 'receiveYears');
+        setupSync('slide-inflation', 'inflation');
 
         function simulate() {
             let age = parseFloat(document.getElementById('age').value) || 0;
@@ -176,6 +230,9 @@
             let start = parseFloat(document.getElementById('start').value) || 0;
             let receiveAnnual = parseFloat(document.getElementById('receiveAnnual').value) || 0;
             let receiveYears = parseFloat(document.getElementById('receiveYears').value) || 0;
+            let annualInflation = (parseFloat(document.getElementById('inflation').value) || 0) / 100;
+
+            let monthlyInflation = Math.pow(1 + annualInflation, 1 / 12) - 1;
 
             let minStartAge = age + Math.ceil(payMonths / 12);
             const slideStart = document.getElementById('slide-start');
@@ -190,30 +247,50 @@
                 inputStart.value = minStartAge;
             }
 
-            let totalPaid = payMonths * payMonthly;
-            let totalReceived = receiveYears * receiveAnnual;
+            // 1. 명목 기준 계산
+            let totalPaidNominal = payMonths * payMonthly;
+            let totalReceivedNominal = receiveYears * receiveAnnual;
+            let nominalSimpleReturn = totalPaidNominal > 0 ? ((totalReceivedNominal - totalPaidNominal) / totalPaidNominal) * 100 : 0;
 
-            let simpleReturn = totalPaid > 0 ? ((totalReceived - totalPaid) / totalPaid) * 100 : 0;
+            // 2. 실질 기준 (PV) 계산
+            let totalPaidReal = 0;
+            for (let j = 0; j < payMonths; j++) {
+                totalPaidReal += payMonthly / Math.pow(1 + monthlyInflation, j);
+            }
 
-            // --- IRR (Internal Rate of Return) 계산 로직 시작 ---
-            function getIRR() {
-                if (totalPaid <= 0 || totalReceived <= 0) return 0;
+            let totalReceivedReal = 0;
+            let startMonthIndex = (start - age) * 12;
+            let monthlyReceive = receiveAnnual / 12;
+            for (let k = 0; k < receiveYears * 12; k++) {
+                let absoluteMonth = startMonthIndex + k;
+                totalReceivedReal += monthlyReceive / Math.pow(1 + monthlyInflation, absoluteMonth);
+            }
 
-                // 현금 흐름 구성 (월 단위)
+            let realSimpleReturn = totalPaidReal > 0 ? ((totalReceivedReal - totalPaidReal) / totalPaidReal) * 100 : 0;
+
+            // IRR 계산 함수
+            function calculateIRR(isReal) {
                 const cashFlows = [];
-                // 1. 납입기 (마이너스 흐름)
-                for (let i = 0; i < payMonths; i++) cashFlows.push(-payMonthly);
-                // 2. 거치기 (나머지 기간, 흐름 0)
-                const monthsUntilStart = Math.max(0, (start - age) * 12);
-                const waitMonths = monthsUntilStart - payMonths;
+                for (let i = 0; i < payMonths; i++) {
+                    let cf = -payMonthly;
+                    if (isReal) cf /= Math.pow(1 + monthlyInflation, i);
+                    cashFlows.push(cf);
+                }
+                let monthsUntilStart = Math.max(0, (start - age) * 12);
+                let waitMonths = monthsUntilStart - payMonths;
                 for (let i = 0; i < waitMonths; i++) cashFlows.push(0);
-                // 3. 수령기 (플러스 흐름)
-                const monthlyReceive = receiveAnnual / 12;
-                for (let i = 0; i < receiveYears * 12; i++) cashFlows.push(monthlyReceive);
 
-                // Newton-Raphson 방식으로 IRR 찾기
-                let r = 0.005; // 초기값 (월 0.5%)
-                for (let i = 0; i < 50; i++) {
+                for (let yr = 0; yr < receiveYears; yr++) {
+                    for (let m = 0; m < 12; m++) {
+                        let absoluteMonth = startMonthIndex + (yr * 12 + m);
+                        let cf = monthlyReceive;
+                        if (isReal) cf /= Math.pow(1 + monthlyInflation, absoluteMonth);
+                        cashFlows.push(cf);
+                    }
+                }
+
+                let r = 0.005;
+                for (let i = 0; i < 60; i++) {
                     let npv = 0;
                     let dnpv = 0;
                     for (let j = 0; j < cashFlows.length; j++) {
@@ -221,69 +298,115 @@
                         npv += cashFlows[j] / discount;
                         dnpv -= (j * cashFlows[j]) / (discount * (1 + r));
                     }
+                    if (Math.abs(dnpv) < 1e-9) break;
                     if (Math.abs(npv) < 0.01) break;
-                    r = r - npv / dnpv;
+                    let next_r = r - npv / dnpv;
+                    if (isNaN(next_r) || !isFinite(next_r)) break;
+                    r = next_r;
                 }
 
-                // 월 수익률을 연 수익률로 변환
-                return (Math.pow(1 + r, 12) - 1) * 100;
+                let annualReturn = (Math.pow(1 + r, 12) - 1) * 100;
+                return (isNaN(annualReturn) || !isFinite(annualReturn)) ? 0 : annualReturn;
             }
 
-            let annualReturn = getIRR();
+            let nominalIRR = calculateIRR(false);
+            let realIRR = calculateIRR(true);
 
-            document.getElementById('top-total-received').innerText = totalReceived.toLocaleString();
-            document.getElementById('res-paid').innerText = totalPaid.toLocaleString();
-            document.getElementById('res-received').innerText = totalReceived.toLocaleString();
-            document.getElementById('res-simple').innerText = simpleReturn.toFixed(1);
-            document.getElementById('res-annual').innerText = annualReturn.toFixed(2);
+            // 화면 반영
+            document.getElementById('top-total-received').innerText = totalReceivedNominal.toLocaleString(undefined, { maximumFractionDigits: 0 });
+            
+            document.getElementById('res-paid-nom').innerText = totalPaidNominal.toLocaleString();
+            document.getElementById('res-received-nom').innerText = totalReceivedNominal.toLocaleString();
+            document.getElementById('res-simple-nom').innerText = nominalSimpleReturn.toFixed(1);
+            document.getElementById('res-annual-nom').innerText = nominalIRR.toFixed(2);
 
+            document.querySelectorAll('.inf-display').forEach(el => el.innerText = (annualInflation * 100).toFixed(1));
+            document.getElementById('res-paid-real').innerText = totalPaidReal.toLocaleString(undefined, { maximumFractionDigits: 0 });
+            document.getElementById('res-received-real').innerText = totalReceivedReal.toLocaleString(undefined, { maximumFractionDigits: 0 });
+            document.getElementById('res-simple-real').innerText = realSimpleReturn.toFixed(1);
+            document.getElementById('res-annual-real').innerText = realIRR.toFixed(2);
+
+            // 시뮬레이션 차트 시계열 데이터 누적 생성 (명목 & 실질)
             let labels = [];
-            let historyPaid = [];
-            let historyReceived = [];
+            let nomPaid = [], nomRec = [], realPaid = [], realRec = [];
             let endAge = start + receiveYears;
+
+            let curNomPaidAcc = 0, curNomRecAcc = 0;
+            let curRealPaidAcc = 0, curRealRecAcc = 0;
 
             for (let currentAge = age; currentAge <= endAge; currentAge++) {
                 labels.push(`${currentAge}세`);
 
-                let yearsPassed = currentAge - age;
-                let maxMonthsAtAge = yearsPassed * 12;
-                let actualMonthsPaid = Math.min(maxMonthsAtAge, payMonths);
-                historyPaid.push(actualMonthsPaid * payMonthly);
-
-                if (currentAge >= start) {
-                    let receiveYearsPassed = currentAge - start;
-                    let actualYearsReceived = Math.min(receiveYearsPassed, receiveYears);
-                    historyReceived.push(actualYearsReceived * receiveAnnual);
-                } else {
-                    historyReceived.push(0);
+                let yearIndex = currentAge - age;
+                
+                // 연간 납입금 및 실질 할인 계산
+                let nomPaidThisYear = 0;
+                let realPaidThisYear = 0;
+                for (let m = 0; m < 12; m++) {
+                    let absoluteMonth = yearIndex * 12 + m;
+                    if (absoluteMonth < payMonths) {
+                        nomPaidThisYear += payMonthly;
+                        realPaidThisYear += payMonthly / Math.pow(1 + monthlyInflation, absoluteMonth);
+                    }
                 }
+                curNomPaidAcc += nomPaidThisYear;
+                curRealPaidAcc += realPaidThisYear;
+
+                // 연간 수령금 및 실질 할인 계산
+                let nomRecThisYear = 0;
+                let realRecThisYear = 0;
+                if (currentAge >= start) {
+                    let receiveYearIndex = currentAge - start;
+                    if (receiveYearIndex < receiveYears) {
+                        for (let m = 0; m < 12; m++) {
+                            let absoluteMonth = startMonthIndex + (receiveYearIndex * 12 + m);
+                            nomRecThisYear += monthlyReceive;
+                            realRecThisYear += monthlyReceive / Math.pow(1 + monthlyInflation, absoluteMonth);
+                        }
+                    }
+                }
+                curNomRecAcc += nomRecThisYear;
+                curRealRecAcc += realRecThisYear;
+
+                nomPaid.push(curNomPaidAcc);
+                nomRec.push(curNomRecAcc);
+                realPaid.push(curRealPaidAcc);
+                realRec.push(curRealRecAcc);
             }
 
-            updateChart(labels, historyPaid, historyReceived);
+            chartDataCache = { labels, nomPaid, nomRec, realPaid, realRec };
+            renderChart();
         }
 
-        function updateChart(labels, dataPaid, dataReceived) {
+        function renderChart() {
             const ctx = document.getElementById('pensionChart').getContext('2d');
             if (chart) chart.destroy();
+
+            const isReal = currentChartMode === 'real';
+            const paidData = isReal ? chartDataCache.realPaid : chartDataCache.nomPaid;
+            const recData = isReal ? chartDataCache.realRec : chartDataCache.nomRec;
+            const themeColor = isReal ? '#059669' : '#2563eb';
+            const themeBg = isReal ? 'rgba(5, 150, 105, 0.1)' : 'rgba(37, 99, 235, 0.1)';
+            const modeLabel = isReal ? '(실질 PV)' : '(명목)';
 
             chart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: labels,
+                    labels: chartDataCache.labels,
                     datasets: [
                         {
-                            label: '누적 납입액 (만원)',
-                            data: dataPaid,
-                            borderColor: '#2563eb',
-                            backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                            label: `누적 납입액 ${modeLabel}`,
+                            data: paidData,
+                            borderColor: themeColor,
+                            backgroundColor: themeBg,
                             fill: true,
                             tension: 0.1,
                             pointRadius: 2,
                             borderWidth: 3
                         },
                         {
-                            label: '누적 수령액 (만원)',
-                            data: dataReceived,
+                            label: `누적 수령액 ${modeLabel}`,
+                            data: recData,
                             borderColor: '#16a34a',
                             backgroundColor: 'rgba(22, 163, 74, 0.1)',
                             fill: true,
@@ -320,6 +443,7 @@
                 }
             });
         }
+
         window.onload = simulate;
     </script>
 </body>
